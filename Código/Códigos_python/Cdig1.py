@@ -36,36 +36,43 @@ from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
 from gnuradio import iio
 from gnuradio import network
-from gnuradio.qtgui import Range, RangeWidget
-from PyQt5 import QtCore
 import ieee802_11
 
 
-def snipfcn_snippet_1(self):
+def snipfcn_snippet_2(self):
     import threading
     import time
     import math
 
-    # apanhar o objeto do flowgraph (top block) passado a este snippet
+    # apanhar o objeto do flowgraph (top block)
     _locals = locals()
     tb = list(_locals.values())[0] if _locals else None
 
-    # -------------------------
-    # THREAD 1: Sweep de Frequências
-    # -------------------------
+
+    # ---------------------------------------------------------
+    # THREAD 1: SWEEP COM LIMIAR SIMPLES EM 2.4 GHz
+    # ---------------------------------------------------------
 
     def wifi_sweep_thread():
         """
-        Varrimento automático da lista freq_list.
-        Atualiza current_freq (LO do Pluto) e imprime a potência média.
+        Sweep automático das frequências em freq_list.
+
+        - Apenas procura Wi-Fi REAL em 2.4 GHz.
+        - Usa um limiar fixo de potência (ajustado aos teus valores).
+        - Mostra 'thr' a cada sweep.
+        - Quando encontra Wi-Fi, faz pausa para decodificação.
         """
+
+        hold_no_wifi   = 0.25
+        pause_24ghz    = 30.0
+        wifi_thr_24ghz = 8e-5     # ajustado à tua potência (~1e-4)
 
         while True:
             try:
                 freq_list = tb.freq_list
                 idx = int(tb.freq_index)
             except Exception as e:
-                print("Erro a ler variáveis de frequência:", e)
+                print("Erro a ler freq_list / freq_index:", e)
                 time.sleep(0.5)
                 continue
 
@@ -73,59 +80,78 @@ def snipfcn_snippet_1(self):
                 time.sleep(0.5)
                 continue
 
-            # frequência atual
             freq = freq_list[idx]
 
-            # atualizar variável usada no Pluto LO
+            # mudar LO do Pluto
             try:
                 tb.set_current_freq(freq)
             except Exception as e:
                 print("Erro em set_current_freq:", e)
 
-            # medir potência global (Probe ligado ao Complex to Mag^2)
+            # ler potência
             try:
                 power = tb.blocks_probe_signal_x_1.level()
-            except Exception as e:
-                print("Erro a ler probe de potência:", e)
+            except:
                 power = 0.0
 
-            print(f"[SWEEP] freq={freq/1e9:.3f} GHz  power={power:.4f}")
+            # ler limiar atual do Sync Short
+            try:
+                thr = tb.thr
+            except:
+                thr = -1.0
 
-            # próximo canal
+            # linha completa de debug
+            print(f"[SWEEP] freq={freq/1e9:.3f} GHz  power={power:.6f}  thr={thr:.6f}")
+
+            # banda 2.4 GHz
+            is_24 = 2.3e9 <= freq <= 2.5e9
+
+            # DETEÇÃO DE WiFi
+            if is_24 and power > wifi_thr_24ghz:
+                print(f"[INFO] WiFi detectada em {freq/1e9:.3f} GHz | power={power:.6f}  thr={thr:.6f} → pausa {pause_24ghz:.1f}s")
+                time.sleep(pause_24ghz)
+
+                # avança o índice
+                idx = (idx + 1) % len(freq_list)
+                try:
+                    tb.set_freq_index(idx)
+                except:
+                    pass
+
+                continue
+
+            # avançar para próximo canal
             idx = (idx + 1) % len(freq_list)
             try:
                 tb.set_freq_index(idx)
-            except Exception as e:
-                print("Erro em set_freq_index:", e)
+            except:
+                pass
 
-            time.sleep(0.3)
+            time.sleep(hold_no_wifi)
 
 
-    # -------------------------
-    # THREAD 2: Threshold Automático do Sync Short
-    # -------------------------
+
+    # ---------------------------------------------------------
+    # THREAD 2: THRESHOLD AUTOMÁTICO DO SYNC SHORT
+    # ---------------------------------------------------------
 
     def auto_threshold_thread():
         """
-        Calcula limiar 'thr' adaptativo para o WiFi Sync Short,
-        usando a saída do Divide (probe blocks_probe_signal_x_1_0).
-        thr = média + k * desvio_padrão (estimados exponencialmente).
+        Calcula limiar adaptativo para o WiFi Sync Short usando média+desvio.
         """
 
-        alpha = 0.02   # rapidez de adaptação
-        k = 3.0        # quantos desvios acima da média
+        alpha = 0.02
+        k = 3.0
 
         mean = 0.0
-        var = 0.0
+        var  = 0.0
 
         while True:
             try:
                 x = tb.blocks_probe_signal_x_1_0.level()
-            except Exception as e:
-                print("Erro a ler probe_corr:", e)
+            except:
                 x = 0.0
 
-            # média e variância exponencial
             mean = (1.0 - alpha) * mean + alpha * x
             diff = x - mean
             var = (1.0 - alpha) * var + alpha * (diff * diff)
@@ -135,18 +161,16 @@ def snipfcn_snippet_1(self):
 
             try:
                 tb.set_thr(new_thr)
-            except Exception as e:
-                print("Erro em set_thr:", e)
-
-            # debug opcional:
-            # print(f"[THR] mean={mean:.4f} std={std:.4f} thr={new_thr:.4f}")
+            except:
+                pass
 
             time.sleep(0.02)
 
 
-    # -------------------------
-    # Arrancar as duas threads
-    # -------------------------
+
+    # ---------------------------------------------------------
+    # Lançar as threads
+    # ---------------------------------------------------------
 
     t1 = threading.Thread(target=wifi_sweep_thread)
     t1.daemon = True
@@ -158,7 +182,7 @@ def snipfcn_snippet_1(self):
 
 
 def snippets_main_after_init(tb):
-    snipfcn_snippet_1(tb)
+    snipfcn_snippet_2(tb)
 
 from gnuradio import qtgui
 
@@ -201,10 +225,9 @@ class Cdig1(gr.top_block, Qt.QWidget):
         self.window_size = window_size = 64
         self.thr = thr = 0.560
         self.samp_rate = samp_rate = 20000000
-        self.freq_list = freq_list = [2412e6, 2437e6, 2462e6, 2472e6, 5180e6, 5200e6, 5220e6, 5240e6,5260e6, 5280e6, 5300e6, 5320e6, 5500e6, 5520e6, 5540e6, 5560e6, 5700e6, 5745e6, 5785e6, 5825e6]
+        self.freq_list = freq_list = [2412e6,2437e6,2462e6]
         self.freq_index = freq_index = 0
         self.current_freq = current_freq = 2412000000
-        self.Variável_threshold = Variável_threshold = 0.560
 
         ##################################################
         # Blocks
@@ -362,7 +385,7 @@ class Cdig1(gr.top_block, Qt.QWidget):
         self.iio_pluto_source_0.set_frequency(current_freq)
         self.iio_pluto_source_0.set_samplerate(samp_rate)
         self.iio_pluto_source_0.set_gain_mode(0, 'manual')
-        self.iio_pluto_source_0.set_gain(0, 50)
+        self.iio_pluto_source_0.set_gain(0, 60)
         self.iio_pluto_source_0.set_quadrature(True)
         self.iio_pluto_source_0.set_rfdc(True)
         self.iio_pluto_source_0.set_bbdc(True)
@@ -370,7 +393,7 @@ class Cdig1(gr.top_block, Qt.QWidget):
         self.ieee802_11_sync_short_0 = ieee802_11.sync_short(thr, 2, False, False)
         self.ieee802_11_sync_long_1 = ieee802_11.sync_long(320, False, False)
         self.ieee802_11_parse_mac_0 = ieee802_11.parse_mac(True, False)
-        self.ieee802_11_frame_equalizer_0 = ieee802_11.frame_equalizer(ieee802_11.LS, 2412000000, 20e6, False, False)
+        self.ieee802_11_frame_equalizer_0 = ieee802_11.frame_equalizer(ieee802_11.LS, current_freq, 20e6, False, False)
         self.ieee802_11_decode_mac_0 = ieee802_11.decode_mac(True, False)
         self.fir_filter_xxx_0_0 = filter.fir_filter_ccc(1, [1]*window_size)
         self.fir_filter_xxx_0_0.declare_sample_delay(0)
@@ -388,9 +411,6 @@ class Cdig1(gr.top_block, Qt.QWidget):
         self.blocks_complex_to_mag_squared_0 = blocks.complex_to_mag_squared(1)
         self.blocks_complex_to_mag_1 = blocks.complex_to_mag(1)
         self.blocks_complex_to_mag_0 = blocks.complex_to_mag(1)
-        self._Variável_threshold_range = Range(0.1, 1, 0.05, 0.560, 200)
-        self._Variável_threshold_win = RangeWidget(self._Variável_threshold_range, self.set_Variável_threshold, "'Variável_threshold'", "counter_slider", float, QtCore.Qt.Horizontal)
-        self.top_layout.addWidget(self._Variável_threshold_win)
 
 
         ##################################################
@@ -475,13 +495,8 @@ class Cdig1(gr.top_block, Qt.QWidget):
 
     def set_current_freq(self, current_freq):
         self.current_freq = current_freq
+        self.ieee802_11_frame_equalizer_0.set_frequency(self.current_freq)
         self.iio_pluto_source_0.set_frequency(self.current_freq)
-
-    def get_Variável_threshold(self):
-        return self.Variável_threshold
-
-    def set_Variável_threshold(self, Variável_threshold):
-        self.Variável_threshold = Variável_threshold
 
 
 

@@ -42,7 +42,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [792, 4.0]
+    coordinate: [688, 4.0]
     rotation: 0
     state: enabled
 - name: freq_index
@@ -54,44 +54,21 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [896, 4.0]
+    coordinate: [800, 4.0]
     rotation: 0
     state: enabled
 - name: freq_list
   id: variable
   parameters:
     comment: ''
-    value: '[2412e6, 2437e6, 2462e6, 2472e6, 5180e6, 5200e6, 5220e6, 5240e6,5260e6,
-      5280e6, 5300e6, 5320e6, 5500e6, 5520e6, 5540e6, 5560e6, 5700e6, 5745e6, 5785e6,
-      5825e6]'
+    value: '[2412e6,2437e6,2462e6]'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [624, 4.0]
+    coordinate: [504, 12.0]
     rotation: 0
     state: enabled
-- name: k_thr
-  id: variable_qtgui_range
-  parameters:
-    comment: ''
-    gui_hint: ''
-    label: ''
-    min_len: '200'
-    orient: QtCore.Qt.Horizontal
-    rangeType: float
-    start: '0.1'
-    step: '0.05'
-    stop: '1'
-    value: '0.560'
-    widget: counter_slider
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [488, 4.0]
-    rotation: 0
-    state: true
 - name: samp_rate
   id: variable
   parameters:
@@ -116,18 +93,6 @@ blocks:
     coordinate: [400, 12.0]
     rotation: 0
     state: enabled
-- name: thr_0
-  id: variable
-  parameters:
-    comment: ''
-    value: '0.003'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [736, 12.0]
-    rotation: 0
-    state: disabled
 - name: window_size
   id: variable
   parameters:
@@ -239,7 +204,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [392, 168.0]
+    coordinate: [472, 128.0]
     rotation: 0
     state: enabled
 - name: blocks_delay_0_0
@@ -527,7 +492,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [832, 188.0]
+    coordinate: [912, 172.0]
     rotation: 0
     state: enabled
 - name: fir_filter_xxx_0_0_0
@@ -575,7 +540,7 @@ blocks:
     bw: 20e6
     comment: ''
     debug: 'False'
-    freq: '2412000000'
+    freq: current_freq
     log: 'False'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -656,7 +621,7 @@ blocks:
     fstop: '0'
     gain1: '''manual'''
     len_tag_key: packet_len
-    manual_gain1: '50'
+    manual_gain1: '60'
     maxoutbuf: '0'
     minoutbuf: '0'
     quadrature: 'True'
@@ -1213,68 +1178,50 @@ blocks:
   parameters:
     alias: ''
     code: "import threading\nimport time\nimport math\n\n# apanhar o objeto do flowgraph\
-      \ (top block) passado a este snippet\n_locals = locals()\ntb = list(_locals.values())[0]\
-      \ if _locals else None\n\n# -------------------------\n# THREAD 1: Sweep de\
-      \ Frequ\xEAncias\n# -------------------------\n\ndef wifi_sweep_thread():\n\
-      \    \"\"\"\n    Varrimento autom\xE1tico da lista freq_list.\n    Atualiza\
-      \ current_freq (LO do Pluto) e imprime a pot\xEAncia m\xE9dia.\n    \"\"\"\n\
-      \n    while True:\n        try:\n            freq_list = tb.freq_list\n    \
-      \        idx = int(tb.freq_index)\n        except Exception as e:\n        \
-      \    print(\"Erro a ler vari\xE1veis de frequ\xEAncia:\", e)\n            time.sleep(0.5)\n\
-      \            continue\n\n        if not freq_list:\n            time.sleep(0.5)\n\
-      \            continue\n\n        # frequ\xEAncia atual\n        freq = freq_list[idx]\n\
-      \n        # atualizar vari\xE1vel usada no Pluto LO\n        try:\n        \
-      \    tb.set_current_freq(freq)\n        except Exception as e:\n           \
-      \ print(\"Erro em set_current_freq:\", e)\n\n        # medir pot\xEAncia global\
-      \ (Probe ligado ao Complex to Mag^2)\n        try:\n            power = tb.blocks_probe_signal_x_1.level()\n\
-      \        except Exception as e:\n            print(\"Erro a ler probe de pot\xEA\
-      ncia:\", e)\n            power = 0.0\n\n        print(f\"[SWEEP] freq={freq/1e9:.3f}\
-      \ GHz  power={power:.4f}\")\n\n        # pr\xF3ximo canal\n        idx = (idx\
-      \ + 1) % len(freq_list)\n        try:\n            tb.set_freq_index(idx)\n\
-      \        except Exception as e:\n            print(\"Erro em set_freq_index:\"\
-      , e)\n\n        time.sleep(0.3)\n\n\n# -------------------------\n# THREAD 2:\
-      \ Threshold Autom\xE1tico do Sync Short\n# -------------------------\n\ndef\
-      \ auto_threshold_thread():\n    \"\"\"\n    Calcula limiar 'thr' adaptativo\
-      \ para o WiFi Sync Short,\n    usando a sa\xEDda do Divide (probe blocks_probe_signal_x_1_0).\n\
-      \    thr = m\xE9dia + k * desvio_padr\xE3o (estimados exponencialmente).\n \
-      \   \"\"\"\n\n    alpha = 0.02   # rapidez de adapta\xE7\xE3o\n    k = 3.0 \
-      \       # quantos desvios acima da m\xE9dia\n\n    mean = 0.0\n    var = 0.0\n\
-      \n    while True:\n        try:\n            x = tb.blocks_probe_signal_x_1_0.level()\n\
-      \        except Exception as e:\n            print(\"Erro a ler probe_corr:\"\
-      , e)\n            x = 0.0\n\n        # m\xE9dia e vari\xE2ncia exponencial\n\
-      \        mean = (1.0 - alpha) * mean + alpha * x\n        diff = x - mean\n\
-      \        var = (1.0 - alpha) * var + alpha * (diff * diff)\n        std = math.sqrt(max(var,\
-      \ 1e-12))\n\n        new_thr = mean + k * std\n\n        try:\n            tb.set_thr(new_thr)\n\
-      \        except Exception as e:\n            print(\"Erro em set_thr:\", e)\n\
-      \n        # debug opcional:\n        # print(f\"[THR] mean={mean:.4f} std={std:.4f}\
-      \ thr={new_thr:.4f}\")\n\n        time.sleep(0.02)\n\n\n# -------------------------\n\
-      # Arrancar as duas threads\n# -------------------------\n\nt1 = threading.Thread(target=wifi_sweep_thread)\n\
-      t1.daemon = True\nt1.start()\n\nt2 = threading.Thread(target=auto_threshold_thread)\n\
-      t2.daemon = True\nt2.start()\ndef wifi_sweep_thread():\n    \"\"\"\n    Varrimento\
-      \ autom\xE1tico da lista freq_list.\n    Fica mais tempo parado na frequ\xEA\
-      ncia quando deteta Wi-Fi,\n    para permitir apanhar mais frames / bits.\n \
-      \   \"\"\"\n\n    # tempos de espera (em segundos)\n    hold_no_wifi = 0.3 \
-      \  # quando n\xE3o h\xE1 Wi-Fi\n    hold_wifi    = 2.0   # quando h\xE1 Wi-Fi\
-      \ (fica parado aqui)\n\n    # limiar de pot\xEAncia para dizer \"h\xE1 Wi-Fi\"\
-      \n    wifi_power_thr = 0.0005   # podes afinar mais tarde\n\n    while True:\n\
-      \        try:\n            freq_list = tb.freq_list\n            idx = int(tb.freq_index)\n\
-      \        except Exception as e:\n            print(\"Erro a ler vari\xE1veis\
-      \ de frequ\xEAncia:\", e)\n            time.sleep(0.5)\n            continue\n\
-      \n        if not freq_list:\n            time.sleep(0.5)\n            continue\n\
-      \n        # frequ\xEAncia atual\n        freq = freq_list[idx]\n\n        #\
-      \ atualizar vari\xE1vel usada no Pluto LO\n        try:\n            tb.set_current_freq(freq)\n\
-      \        except Exception as e:\n            print(\"Erro em set_current_freq:\"\
-      , e)\n\n        # medir pot\xEAncia global (Probe ligado ao Complex to Mag^2)\n\
-      \        try:\n            power = tb.blocks_probe_signal_x_1.level()\n    \
-      \    except Exception as e:\n            print(\"Erro a ler probe de pot\xEA\
-      ncia:\", e)\n            power = 0.0\n\n        print(f\"[SWEEP] freq={freq/1e9:.3f}\
-      \ GHz  power={power:.4f}\")\n\n        # decidir quanto tempo ficar aqui e se\
-      \ mudamos de canal\n        if power > wifi_power_thr:\n            # H\xE1\
-      \ Wi-Fi \u2192 N\xC3O muda de canal, s\xF3 espera mais tempo\n            time.sleep(hold_wifi)\n\
-      \        else:\n            # N\xE3o h\xE1 Wi-Fi \u2192 passa j\xE1 ao pr\xF3\
-      ximo canal\n            idx = (idx + 1) % len(freq_list)\n            try:\n\
-      \                tb.set_freq_index(idx)\n            except Exception as e:\n\
-      \                print(\"Erro em set_freq_index:\", e)\n\n            time.sleep(hold_no_wifi)"
+      \ (top block)\n_locals = locals()\ntb = list(_locals.values())[0] if _locals\
+      \ else None\n\n\n# ---------------------------------------------------------\n\
+      # THREAD 1: SWEEP com pausa de 10 segundos ao detectar WiFi\n# ---------------------------------------------------------\n\
+      \ndef wifi_sweep_thread():\n    \"\"\"\n    Sweep autom\xE1tico das frequ\xEA\
+      ncias em freq_list.\n    Quando detecta WiFi (power > limiar), fica 10 segundos\
+      \ parado.\n    Depois continua o sweep normalmente.\n    \"\"\"\n\n    hold_no_wifi\
+      \ = 0.3        # tempo entre canais quando n\xE3o h\xE1 WiFi\n    wifi_power_thr\
+      \ = 0.00015  # limiar de pot\xEAncia para dizer \"h\xE1 Wi-Fi\"\n    pause_time\
+      \ = 10.0         # pausa quando detecta WiFi\n\n    while True:\n        try:\n\
+      \            freq_list = tb.freq_list\n            idx = int(tb.freq_index)\n\
+      \        except Exception as e:\n            print(\"Erro a ler freq_list /\
+      \ freq_index:\", e)\n            time.sleep(0.5)\n            continue\n\n \
+      \       if not freq_list:\n            time.sleep(0.5)\n            continue\n\
+      \n        freq = freq_list[idx]\n\n        # mudar LO do Pluto\n        try:\n\
+      \            tb.set_current_freq(freq)\n        except Exception as e:\n   \
+      \         print(\"Erro em set_current_freq:\", e)\n\n        # ler pot\xEAncia\
+      \ global (probe do Complex\u2192Mag\xB2)\n        try:\n            power =\
+      \ tb.blocks_probe_signal_x_1.level()\n        except:\n            power = 0.0\n\
+      \n        print(f\"[SWEEP] freq={freq/1e9:.3f} GHz  power={power:.6f}\")\n\n\
+      \        # --------------------------------------\n        # DETECTOU Wi-Fi\
+      \ ?\n        # --------------------------------------\n        if power > wifi_power_thr:\n\
+      \            print(f\"[INFO] WiFi detectada em {freq/1e9:.3f} GHz \u2192 pausa\
+      \ {pause_time}s\")\n            time.sleep(pause_time)\n\n            # depois\
+      \ de esperar, avan\xE7a para o pr\xF3ximo canal\n            idx = (idx + 1)\
+      \ % len(freq_list)\n            try:\n                tb.set_freq_index(idx)\n\
+      \            except:\n                pass\n\n            continue\n\n     \
+      \   # --------------------------------------\n        # N\xE3o h\xE1 Wi-Fi \u2192\
+      \ avan\xE7ar para o pr\xF3ximo\n        # --------------------------------------\n\
+      \        idx = (idx + 1) % len(freq_list)\n        try:\n            tb.set_freq_index(idx)\n\
+      \        except:\n            pass\n\n        time.sleep(hold_no_wifi)\n\n\n\
+      \n# ---------------------------------------------------------\n# THREAD 2: THRESHOLD\
+      \ AUTOM\xC1TICO DO SYNC SHORT\n# ---------------------------------------------------------\n\
+      \ndef auto_threshold_thread():\n    \"\"\"\n    Calcula limiar adaptativo para\
+      \ o WiFi Sync Short usando m\xE9dia+desvio.\n    \"\"\"\n\n    alpha = 0.02\n\
+      \    k = 3.0\n\n    mean = 0.0\n    var  = 0.0\n\n    while True:\n        try:\n\
+      \            x = tb.blocks_probe_signal_x_1_0.level()\n        except:\n   \
+      \         x = 0.0\n\n        # m\xE9dia e vari\xE2ncia exponencial\n       \
+      \ mean = (1 - alpha)*mean + alpha*x\n        diff = x - mean\n        var  =\
+      \ (1 - alpha)*var  + alpha*(diff*diff)\n        std  = math.sqrt(max(var, 1e-12))\n\
+      \n        new_thr = mean + k*std\n\n        try:\n            tb.set_thr(new_thr)\n\
+      \        except:\n            pass\n\n        time.sleep(0.02)\n\n\n\n# ---------------------------------------------------------\n\
+      # Lan\xE7ar as threads\n# ---------------------------------------------------------\n\
+      \nt1 = threading.Thread(target=wifi_sweep_thread)\nt1.daemon = True\nt1.start()\n\
+      \nt2 = threading.Thread(target=auto_threshold_thread)\nt2.daemon = True\nt2.start()"
     comment: ''
     priority: '0'
     section: main_after_init
@@ -1283,6 +1230,65 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [8, 84.0]
+    rotation: 0
+    state: disabled
+- name: snippet_2
+  id: snippet
+  parameters:
+    alias: ''
+    code: "import threading\nimport time\nimport math\n\n# apanhar o objeto do flowgraph\
+      \ (top block)\n_locals = locals()\ntb = list(_locals.values())[0] if _locals\
+      \ else None\n\n\n# ---------------------------------------------------------\n\
+      # THREAD 1: SWEEP COM LIMIAR SIMPLES EM 2.4 GHz\n# ---------------------------------------------------------\n\
+      \ndef wifi_sweep_thread():\n    \"\"\"\n    Sweep autom\xE1tico das frequ\xEA\
+      ncias em freq_list.\n\n    - Apenas procura Wi-Fi REAL em 2.4 GHz.\n    - Usa\
+      \ um limiar fixo de pot\xEAncia (ajustado aos teus valores).\n    - Mostra 'thr'\
+      \ a cada sweep.\n    - Quando encontra Wi-Fi, faz pausa para decodifica\xE7\xE3\
+      o.\n    \"\"\"\n\n    hold_no_wifi   = 0.25\n    pause_24ghz    = 30.0\n   \
+      \ wifi_thr_24ghz = 8e-5     # ajustado \xE0 tua pot\xEAncia (~1e-4)\n\n    while\
+      \ True:\n        try:\n            freq_list = tb.freq_list\n            idx\
+      \ = int(tb.freq_index)\n        except Exception as e:\n            print(\"\
+      Erro a ler freq_list / freq_index:\", e)\n            time.sleep(0.5)\n    \
+      \        continue\n\n        if not freq_list:\n            time.sleep(0.5)\n\
+      \            continue\n\n        freq = freq_list[idx]\n\n        # mudar LO\
+      \ do Pluto\n        try:\n            tb.set_current_freq(freq)\n        except\
+      \ Exception as e:\n            print(\"Erro em set_current_freq:\", e)\n\n \
+      \       # ler pot\xEAncia\n        try:\n            power = tb.blocks_probe_signal_x_1.level()\n\
+      \        except:\n            power = 0.0\n\n        # ler limiar atual do Sync\
+      \ Short\n        try:\n            thr = tb.thr\n        except:\n         \
+      \   thr = -1.0\n\n        # linha completa de debug\n        print(f\"[SWEEP]\
+      \ freq={freq/1e9:.3f} GHz  power={power:.6f}  thr={thr:.6f}\")\n\n        #\
+      \ banda 2.4 GHz\n        is_24 = 2.3e9 <= freq <= 2.5e9\n\n        # DETE\xC7\
+      \xC3O DE WiFi\n        if is_24 and power > wifi_thr_24ghz:\n            print(f\"\
+      [INFO] WiFi detectada em {freq/1e9:.3f} GHz | power={power:.6f}  thr={thr:.6f}\
+      \ \u2192 pausa {pause_24ghz:.1f}s\")\n            time.sleep(pause_24ghz)\n\n\
+      \            # avan\xE7a o \xEDndice\n            idx = (idx + 1) % len(freq_list)\n\
+      \            try:\n                tb.set_freq_index(idx)\n            except:\n\
+      \                pass\n\n            continue\n\n        # avan\xE7ar para pr\xF3\
+      ximo canal\n        idx = (idx + 1) % len(freq_list)\n        try:\n       \
+      \     tb.set_freq_index(idx)\n        except:\n            pass\n\n        time.sleep(hold_no_wifi)\n\
+      \n\n\n# ---------------------------------------------------------\n# THREAD\
+      \ 2: THRESHOLD AUTOM\xC1TICO DO SYNC SHORT\n# ---------------------------------------------------------\n\
+      \ndef auto_threshold_thread():\n    \"\"\"\n    Calcula limiar adaptativo para\
+      \ o WiFi Sync Short usando m\xE9dia+desvio.\n    \"\"\"\n\n    alpha = 0.02\n\
+      \    k = 3.0\n\n    mean = 0.0\n    var  = 0.0\n\n    while True:\n        try:\n\
+      \            x = tb.blocks_probe_signal_x_1_0.level()\n        except:\n   \
+      \         x = 0.0\n\n        mean = (1.0 - alpha) * mean + alpha * x\n     \
+      \   diff = x - mean\n        var = (1.0 - alpha) * var + alpha * (diff * diff)\n\
+      \        std = math.sqrt(max(var, 1e-12))\n\n        new_thr = mean + k * std\n\
+      \n        try:\n            tb.set_thr(new_thr)\n        except:\n         \
+      \   pass\n\n        time.sleep(0.02)\n\n\n\n# ---------------------------------------------------------\n\
+      # Lan\xE7ar as threads\n# ---------------------------------------------------------\n\
+      \nt1 = threading.Thread(target=wifi_sweep_thread)\nt1.daemon = True\nt1.start()\n\
+      \nt2 = threading.Thread(target=auto_threshold_thread)\nt2.daemon = True\nt2.start()"
+    comment: ''
+    priority: '0'
+    section: main_after_init
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [0, 100.0]
     rotation: 0
     state: true
 
