@@ -20,21 +20,21 @@ Neste repositório git temos:
 
 -> Para obter esta pasta git , façam: git clone https://github.com/Lumi-CH23/LuisTiago_CDIG.git;
 
-Integração com Wireshark:
+# Integração com Wireshark:
 
  Tramas decodificadas são enviadas via Socket PDU para o Wireshark, permitindo:
 
 ->inspeção de beacons, data frames, ACKs, QoS data, etc;
 ->identificação de BSSIDs, SSIDs, taxas, timestamp e parâmetros PHY;
 
-Utilização do Pyhton Snippet 
+# Utilização do Pyhton Snippet 
 
  O projeto inclui um script Python integrado no GNU RAdio para:
  -> Sweep de frequenias: (canais: 1,6 e 11);
  -> Threshold automatico;
 
 
- Melhorias Implementadas ao Longo do Projeto
+# Melhorias Implementadas ao Longo do Projeto
 
 -AGC adaptativo com parâmetros ajustáveis
 -Equalizador LMS substituindo LS para maior robustez
@@ -43,7 +43,7 @@ Utilização do Pyhton Snippet
 -Socket PDU configurado corretamente para Wireshark
 -Código Python modular, limpo e fácil de manter
 
-Testes & Validação:
+# Testes & Validação:
 
 O sistema foi testado com:
 
@@ -51,7 +51,7 @@ O sistema foi testado com:
 ->Hotspots de telemóvel;
 ->PlutoSDR;
 
-Foram decodificados com sucesso:
+# Foram decodificados com sucesso:
 
 Beacon frames;
 
@@ -62,7 +62,7 @@ ACKs;
 QoS frames;
 
 
-Créditos:
+# Créditos:
 
 Projeto realizado no contexto académico, usando
 
