@@ -4,7 +4,7 @@ Olá
 
 Este é um projeto relacionado com o IEEE 802.11 utilizando o GNU Radio como ferrramenta software e o ADALM_PLUTO para receber trasmissão WIFI.
 
-Neste repositório git temos:
+# Neste repositório git temos:
 
 -> Pasta DOCS com a parte teórica do projeto;
 
