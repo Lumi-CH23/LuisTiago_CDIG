@@ -8,7 +8,11 @@ Neste repositório git temos:
 
 -> Pasta DOCS com a parte teórica do projeto;
 
+<<<<<<< HEAD
 -> A pasta GRC com o ficheiro flowchart;
+=======
+-> Pasta Wireshark que inclui o código em pyhton utilizando uma FIFO para obter os dados em real-time, ou seja, o pluto recebe transmissão wifi e na aplicação wireshark é possível ver os resultados que estão na pasta "Resultados";
+>>>>>>> f60660afd7b373c50fadc01410881e2de22f4c7c
 
 -> A pasta Pyhton apresenta os códigos utilizados no flowchart;
 
